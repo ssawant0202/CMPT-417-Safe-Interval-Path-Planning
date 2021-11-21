@@ -4,10 +4,8 @@ import argparse
 import glob
 from pathlib import Path
 from cbs import CBSSolver
-from independent import IndependentSolver
-from prioritized import PrioritizedPlanningSolver
 from visualize import Animation
-from single_agent_planner import get_sum_of_cost
+from sipp import get_sum_of_cost
 
 SOLVER = "CBS"
 
@@ -83,9 +81,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    #args.solver = "CBS"
-   # args.instance = "instances/test_45.txt"
-    #args.disjoint = True
+    args.solver = "CBS"
+    args.instance = "instances/test_45.txt"
+    args.disjoint = True
     #checking pycharm gitUI
 
     result_file = open("results.csv", "w", buffering=1)
@@ -100,14 +98,6 @@ if __name__ == '__main__':
             print("***Run CBS***")
             cbs = CBSSolver(my_map, starts, goals)
             paths = cbs.find_solution(args.disjoint)
-        elif args.solver == "Independent":
-            print("***Run Independent***")
-            solver = IndependentSolver(my_map, starts, goals)
-            paths = solver.find_solution()
-        elif args.solver == "Prioritized":
-            print("***Run Prioritized***")
-            solver = PrioritizedPlanningSolver(my_map, starts, goals)
-            paths = solver.find_solution()
         else:
             raise RuntimeError("Unknown solver!")
 

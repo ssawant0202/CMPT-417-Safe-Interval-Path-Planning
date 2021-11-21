@@ -4,7 +4,7 @@ import random
 import itertools
 import copy
 
-from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
+from sipp import compute_heuristics, a_star, get_location, get_sum_of_cost
 
 
 def detect_collision(path1, path2):
