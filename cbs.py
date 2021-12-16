@@ -4,7 +4,7 @@ import random
 import itertools
 import copy
 
-from sipp import compute_heuristics, a_star, get_location, get_sum_of_cost
+from sipp import compute_heuristics, sipp, get_location, get_sum_of_cost
 
 
 def detect_collision(path1, path2):
@@ -225,8 +225,8 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         for i in range(self.num_of_agents):  # Find initial path for each agent
-            path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
-                          i, root['constraints'])
+            path = sipp(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
+                        i, root['constraints'])
             if path is None:
                 raise BaseException('No solutions')
             root['paths'].append(path)
@@ -285,8 +285,8 @@ class CBSSolver(object):
 
                 no_solution = False
                 for ID in agentIDs:
-                    q_path = a_star(self.my_map, self.starts[ID], self.goals[ID], self.heuristics[ID],
-                                    ID, q['constraints'])
+                    q_path = sipp(self.my_map, self.starts[ID], self.goals[ID], self.heuristics[ID],
+                                  ID, q['constraints'])
                     q_path = self.remove_extra_locations(q_path)
                     if q_path:
                         q['paths'][ID] = q_path

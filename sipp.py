@@ -2,6 +2,8 @@ import copy
 import heapq
 from collections import defaultdict
 
+infinity = -1
+
 
 def move(loc, dir):  # loc[0] means the first valor of the tuplet and if dir = 3 then (-1, 0 )
     directions = [(0, -1), (1, 0), (0, 1), (-1, 0), (0, 0)]  # added wait direction (0,0)
@@ -81,12 +83,11 @@ def build_constraint_table(constraints, agent):
 
     return table
 
-
 def is_constrained(curr_loc, next_loc, next_time, constraint_table):
     ##############################
     # Task 1.2/1.3: Check if a move from curr_loc to next_loc at time step next_time violates
     #               any given constraint. For efficiency the constraints are indexed in a constraint_table
-    #               by time step, see build_constraint_table.
+    #               by time step, see build_constraint_table. TEST
     flag = False
     for key, value in constraint_table.items():
         if key == next_time:
@@ -151,43 +152,96 @@ def compare_nodes(n1, n2):
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
-def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
-    """ my_map      - binary obstacle map
-        start_loc   - start position
-        goal_loc    - goal position
-        agent       - the agent that is being re-planned
-        constraints - constraints defining where robot should or cannot go at each timestep
-         constraints = [{'agent': 2, 'loc': [(3, 4)], 'timestep': 5}] list of dict()
-    """
+def earliest_time_possible(safe_interval, curr_time):
+    # check if safe interval is not past yet
+    if curr_time > safe_interval[1] or safe_interval[1] == -1:
+        return None
+    # check how long the agent needs to wait
+    wait_time = safe_interval[0] - curr_time
+    if wait_time < 0:
+        return -1  # bit unsure about this
+    else:
+        return wait_time
 
-    ##############################
-    # Task 1.1: Extend the A* search to search in the space-time domain
-    #           rather than space domain, only.
 
+def get_safe_intervals(current_loc, cfg, curr_timestep, constraint_table):
+    # need to add code here
+    safe_intervals = [0, 0]
+    return safe_intervals
+
+
+def get_successors(my_map, h_values, constraint_table, curr):
+    s_prime = []
+    # loop through all the available motions except for wait.
+    for motion in range(4):
+        cfg = move(curr['loc'], motion)
+        # check for boundary constraints
+        if cfg[0] < 0 or cfg[0] >= len(my_map) or cfg[1] < 0 or cfg[1] >= len(my_map):
+            continue
+        # check if the config is available in my map if not then continue
+        if my_map[cfg[0]][cfg[1]]:
+            continue
+        m_time = 1
+        start_time = curr['timestep'] + m_time
+        # set it to the last safe interval available.
+        end_time = curr['safe_interval'][1]
+        if end_time >= 0:
+            end_time += m_time
+        # calculate all safe intervals for the current cfg (configuration)
+        # need to modify the next line
+        safe_intervals_cfg = get_safe_intervals(curr['loc'], cfg, curr['timestep'] + 1, constraint_table)
+        for safe_interval in safe_intervals_cfg:
+            if (safe_interval[0] > end_time and end_time != infinity) or (safe_interval[1] < start_time and safe_interval[1] != infinity):
+                continue
+            earliest_time = earliest_time_possible(safe_interval, curr['timestep'])
+            if earliest_time < 0:
+                continue
+            temp = {'loc': cfg, 'g_val': curr['g_val']+earliest_time, 'h_val': h_values[cfg], 'parent': curr,
+            'timestep': curr['timestep']+earliest_time, 'safe_interval': safe_interval, 'wait_time': 0}
+
+             # substract the time it takes to get there
+            if earliest_time != 0:
+                temp['wait_time'] += (earliest_time - m_time)
+            s_prime.append(temp)
+
+    return s_prime
+
+
+
+
+
+
+
+def sipp(my_map, start_loc, goal_loc, h_values, agent, constraints):
     open_list = []
-    closed_list = dict()  # a constructor, creates a dictionary obj
+    closed_list = dict()
+
+    # build constraint table
     defaultDict_constraint_table = build_constraint_table(constraints, agent)  # constraint table
     constraint_table = dict(defaultDict_constraint_table)
-    # print(constraint_table)
-    # is_it_constrained = is_constrained([(3, 4)],[(2, 5)],5,constraint_table)
-    # print(constraint_table[4]['loc'])
+
     earliest_goal_timestep = 0
     if len(constraint_table.keys()) != 0:
         earliest_goal_timestep = max(constraint_table.keys())
+
+    if start_loc not in h_values.keys():
+        return None
     h_value = h_values[start_loc]
-    root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': 0}
+
+    # how long it can wait in the root node
+    root_wait_time = get_safe_intervals(start_loc, start_loc, 0, constraint_table)[0]
+    root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': 0, 'safe_interval': root_wait_time, 'wait_time': 0}
+
     push_node(open_list, root)
-    # print(root['loc'])
-    closed_list[(root['loc']), 0] = root
+
+    closed_list[(root['loc']), root_wait_time] = root
+######################STOPPED HERE############################
     upper_bound = (len(max(my_map)) * len(my_map)) + 1
-    # print(closed_list)
-    # print(open_list)
+
     while len(open_list) > 0:
 
         curr = pop_node(open_list)
-        # print(curr)  # curr node
-        #############################
-        # Task 1.4: Adjust the goal test condition to handle goal constraints
+
         if curr['timestep'] > upper_bound:
             print("Hit upper bound:", upper_bound,
                   ", Shortest Path cannot be greater than the distance of the entire map! ")
